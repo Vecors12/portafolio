@@ -1,0 +1,38 @@
+name: gotham_portfolio_2026
+description: "Portfolio Cyberpunk Estilo Gotham - Loren Edition"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  # ----------------------------------------------------------------
+  # SECCIÓN DE ASSETS: Imprescindible para que se vea el personaje
+  # ----------------------------------------------------------------
+  assets:
+    - assets/image_0.png                   # El fondo de la ciudad de Gotham
+    - assets/logo.png                      # Tu logo VECORS
+    # He renombrado 'assets/personaje.png' a 'assets/avatar_frente.png'
+    # para usarlo como estado de espera frontal del NPC.
+    - assets/avatar_frente.png             # Tu avatar 3D - Estado: Frente
+    - assets/avatar_espalda.png            # Tu avatar 3D - Estado: Espalda
+    - assets/avatar_perfilizquierdo.png    # Tu avatar 3D - Estado: Perfil Izquierdo
+    - assets/avatar_perfilderecho.png      # Tu avatar 3D - Estado: Perfil Derecho
+    - assets/logo_cara.png                 # Cara del menú
+    - assets/cv_es.pdf                     # CV Español
+    - assets/cv_en.pdf                     # CV Inglés
+    - assets/cv_de.pdf                     # CV Alemán
