@@ -8,15 +8,13 @@ import 'fondo_estacion.dart';
 import 'visor_contenido.dart';
 import 'menu_metro.dart';
 
-// Importaciones de las vistas de contenido (Las distintas "estaciones")
+// Importaciones de las vistas de contenido
 import 'seccion_cv.dart';
 import 'seccion_contacto.dart';
 import 'seccion_proyectos.dart';
 import 'seccion_idiomas.dart';
 import 'traducciones.dart';
 
-/// [EstacionPrincipal] es el núcleo de la aplicación.
-/// Funciona como un orquestador que gestiona los viajes entre secciones y el idioma global.
 class EstacionPrincipal extends StatefulWidget {
   const EstacionPrincipal({super.key});
 
@@ -24,38 +22,15 @@ class EstacionPrincipal extends StatefulWidget {
   State<EstacionPrincipal> createState() => _EstacionPrincipalState();
 }
 
-/// Usamos [TickerProviderStateMixin] para que Flutter pueda sincronizar las animaciones
-/// con la tasa de refresco de la pantalla (60fps/120fps).
 class _EstacionPrincipalState extends State<EstacionPrincipal>
     with TickerProviderStateMixin {
-  // ==========================================
-  // 1. ESTADO GLOBAL DEL SISTEMA (Privado)
-  // ==========================================
-
-  /// Identificador de la sección que se está mostrando actualmente.
   String _idSeccionActiva = "HOME";
-
-  /// Idioma actual de la interfaz (ES, EN, DE).
   String _idiomaSistema = "ES";
-
-  /// Bloqueo de seguridad: Evita que el usuario haga múltiples clics en el menú
-  /// mientras el tren ya está realizando un viaje.
   bool _transicionEnCurso = false;
-
-  /// Controla la aparición/desaparición del panel de contenido oscuro.
   bool _mostrarInterfazSeccion = false;
 
-  // ==========================================
-  // 2. MOTORES DE ANIMACIÓN (Privados)
-  // ==========================================
-
-  /// Controlador principal para el movimiento lateral del tren.
   late AnimationController _controladorAnimacionTren;
-
-  /// Define de dónde a dónde se mueve el tren en la pantalla (Eje X).
   late Animation<Offset> _animacionDesplazamientoTren;
-
-  /// Controlador para la animación del NPC (Personaje) subiendo al andén/tren.
   late AnimationController _controladorEmbarquePasajero;
 
   @override
@@ -64,9 +39,7 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
     _inicializarAnimaciones();
   }
 
-  /// Configura las duraciones y curvas de movimiento antes de que la pantalla se dibuje.
   void _inicializarAnimaciones() {
-    // 1. Setup del Tren
     _controladorAnimacionTren = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 700));
 
@@ -76,65 +49,43 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
                 parent: _controladorAnimacionTren,
                 curve: Curves.easeInOutCubic));
 
-    // 2. Setup del Pasajero (NPC)
     _controladorEmbarquePasajero = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 900));
 
-    // Inicia la primera animación (El tren entrando al iniciar la web)
     _controladorAnimacionTren.forward();
   }
 
   @override
   void dispose() {
-    // Es vital destruir los controladores de animación para liberar memoria al cerrar la app.
     _controladorAnimacionTren.dispose();
     _controladorEmbarquePasajero.dispose();
     super.dispose();
   }
 
-  // ==========================================
-  // 3. LÓGICA DE NAVEGACIÓN (La Máquina de Estados)
-  // ==========================================
-
-  /// Se ejecuta al pulsar un botón del [MenuMetro].
-  /// Orquesta la salida del tren, el cambio de datos y la entrada de nuevo.
   void _ejecutarViajeHaciaSeccion(String idNuevaSeccion) async {
-    // Si ya estamos en esa sección o el tren se está moviendo, abortamos la acción por seguridad.
     if (_idSeccionActiva == idNuevaSeccion || _transicionEnCurso) return;
 
-    // FASE 1: Ocultar el contenido de texto si hay alguno abierto.
     if (_mostrarInterfazSeccion) {
       setState(() => _mostrarInterfazSeccion = false);
-      // Damos 400ms para que termine el efecto fade-out/slide-down del panel negro.
       await Future.delayed(const Duration(milliseconds: 400));
     }
 
-    // Activamos el bloqueo de interacciones.
     setState(() => _transicionEnCurso = true);
-
-    // FASE 2: Animación del pasajero entrando al tren.
     await _controladorEmbarquePasajero.forward();
-
-    // FASE 3: El tren arranca y sale de la pantalla.
     await _animarSalidaDelTren();
 
-    // FASE 4: Cambiamos silenciosamente los datos (Sección e Idioma).
     setState(() => _idSeccionActiva = idNuevaSeccion);
 
-    // FASE 5: El tren llega a la nueva estación (Vuelve a entrar a pantalla).
     await _animarEntradaDelTren();
 
-    // Desactivamos el bloqueo y el pasajero baja al andén.
     setState(() => _transicionEnCurso = false);
     await _controladorEmbarquePasajero.reverse();
 
-    // FASE 6: Si el destino no es el inicio, desplegamos el panel de contenido negro.
     if (idNuevaSeccion != "HOME") {
       setState(() => _mostrarInterfazSeccion = true);
     }
   }
 
-  /// Efecto del tren saliendo hacia la izquierda.
   Future<void> _animarSalidaDelTren() async {
     setState(() {
       _animacionDesplazamientoTren =
@@ -146,7 +97,6 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
     await _controladorAnimacionTren.forward(from: 0.0);
   }
 
-  /// Efecto del tren entrando desde la derecha.
   Future<void> _animarEntradaDelTren() async {
     setState(() {
       _animacionDesplazamientoTren =
@@ -158,15 +108,9 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
     await _controladorAnimacionTren.forward(from: 0.0);
   }
 
-  // ==========================================
-  // 4. DIBUJO DE LA INTERFAZ (UI)
-  // ==========================================
-
   @override
   Widget build(BuildContext context) {
     double w = MediaQuery.of(context).size.width;
-
-    // Función ayudante (helper) rápida para invocar traducciones en este widget.
     String t(String key) => Traductor.obtener(key, _idiomaSistema);
 
     return Scaffold(
@@ -177,14 +121,12 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
           _construirEscenarioVias(w),
           _construirTrenAnimado(t),
           _construirPasajeroNPC(),
-          _construirPanelDeContenidoOscuro(),
-          _construirHUDyMenu(t), // Las capas superiores de interacción
+          _construirPanelDeContenidoOscuro(w),
+          _construirHUDyMenu(t, w),
         ],
       ),
     );
   }
-
-  // --- SUB-WIDGETS PARA MANTENER EL BUILD LIMPIO ---
 
   Widget _construirImagenFondo() {
     return Positioned.fill(
@@ -196,23 +138,19 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
   Widget _construirEscenarioVias(double screenWidth) {
     return Stack(
       children: [
-        // Muro trasero con las tecnologías dibujadas
         const Positioned(
             bottom: 280,
             left: 0,
             right: 0,
             height: 320,
             child: ForegroundMuroVias()),
-        // Suelo realista con efecto de rejilla / glitch
         const Positioned(
             bottom: 0, left: 0, right: 0, child: SueloEstacionRealista()),
-        // Logo estático posicionado en la escena (desaparece en móvil si molesta)
-        if (screenWidth > 600)
-          Positioned(
-              left: screenWidth * 0.71,
-              bottom: 380,
-              child: Image.asset('assets/logo.png',
-                  width: 125, fit: BoxFit.contain)),
+        Positioned(
+            left: screenWidth * 0.71,
+            bottom: 380,
+            child: Image.asset('assets/logo.png',
+                width: 125, fit: BoxFit.contain)),
       ],
     );
   }
@@ -234,81 +172,77 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
       builder: (context, child) {
         double b = _controladorEmbarquePasajero.value;
         return Positioned(
-          bottom: 10 + (b * 200), // Sube en el eje Y
-          left: 0, right: 0,
-          height: 550 * (1 - (b * 0.5)), // Se encoge para dar profundidad
+          bottom: 10 + (b * 200),
+          left: 0,
+          right: 0,
+          height: 550 * (1 - (b * 0.5)),
           child: Opacity(
-              opacity: (1.0 - (b * 0.95)).clamp(0.0, 1.0), // Se difumina
+              opacity: (1.0 - (b * 0.95)).clamp(0.0, 1.0),
               child: PersonajeNPC(vaAlTren: _transicionEnCurso)),
         );
       },
     );
   }
 
-  Widget _construirPanelDeContenidoOscuro() {
+  Widget _construirPanelDeContenidoOscuro(double w) {
+    // Calculamos la escala para dejar hueco a la derecha y no pisar el menú
+    double escala = w < 800 ? w / 800 : 1.0;
+
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 500),
       curve: Curves.easeInOut,
-      // Baja la pantalla completa cuando no se debe mostrar
       top: _mostrarInterfazSeccion ? 0 : MediaQuery.of(context).size.height,
-      bottom: 0, left: 0, right: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
       child: Container(
         color: Colors.black.withOpacity(0.85),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: BoxConstraints(maxWidth: 800 * escala),
             child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: _inyectarWidgetDeSeccion()), // Inyecta la vista correcta
+                // Forzamos un padding derecho grande en móviles para que el menú quepa
+                padding:
+                    EdgeInsets.only(left: 24.0, right: 24.0 + (60 * escala)),
+                child: _inyectarWidgetDeSeccion()),
           ),
         ),
       ),
     );
   }
 
-  Widget _construirHUDyMenu(String Function(String) t) {
-    double anchoPantalla = MediaQuery.of(context).size.width;
-    bool esMovil = anchoPantalla < 700; // Detectamos móvil
+  Widget _construirHUDyMenu(String Function(String) t, double w) {
+    // Escala matemática directa
+    double escala = w < 800 ? w / 800 : 1.0;
 
     return Stack(
       children: [
-        // Información arriba a la izquierda (SE OCULTA EN MÓVIL)
-        if (!esMovil)
-          Positioned(
-              top: 40,
-              left: 40,
-              child: _construirCajaTerminalInfo(
-                  "DESTINO: PORTFOLIO\nESTADO: CONECTADO\nVÍA: 01")),
-                  
-        // Menú de navegación a la derecha (Márgenes adaptables)
         Positioned(
-            top: esMovil ? 50 : 40,
-            right: esMovil ? 15 : 40,
-            child: MenuMetro(
-                seccionActual: _idSeccionActiva,
-                idioma: _idiomaSistema,
-                alSeleccionar: (id) => _ejecutarViajeHaciaSeccion(id))),
-                
-        // Texto superior central (Más pequeño en móvil)
+            top: 40 * escala,
+            left: 40 * escala,
+            child: _construirCajaTerminalInfo(
+                "DESTINO: PORTFOLIO\nESTADO: CONECTADO\nVÍA: 01", escala)),
         Positioned(
-            top: 20,
+            top: 20 * escala,
             left: 0,
             right: 0,
             child: Center(
                 child: Text("LOREN // PORTFOLIO 2026",
                     style: TextStyle(
-                        color: Colors.cyan, 
-                        letterSpacing: esMovil ? 4 : 8, 
-                        fontSize: esMovil ? 8 : 10)))),
+                        color: Colors.cyan,
+                        letterSpacing: 8 * escala,
+                        fontSize: 10 * escala)))),
+        Positioned(
+            top: 40 * escala,
+            right: 20 * (escala < 1.0 ? 0.5 : 1.0),
+            child: MenuMetro(
+                seccionActual: _idSeccionActiva,
+                idioma: _idiomaSistema,
+                alSeleccionar: (id) => _ejecutarViajeHaciaSeccion(id))),
       ],
     );
   }
 
-  // ==========================================
-  // 5. MÉTODOS AUXILIARES DE CONTENIDO
-  // ==========================================
-
-  /// Relaciona el ID de la sección actual con la llave de traducción correcta.
   String _obtenerLlaveDiccionario(String id) {
     switch (id) {
       case "CV":
@@ -326,7 +260,6 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
     }
   }
 
-  /// Este es el "Router" interno. Devuelve el widget correspondiente a la sección elegida.
   Widget _inyectarWidgetDeSeccion() {
     if (_idSeccionActiva == "CV") {
       return SeccionCV(
@@ -345,19 +278,16 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
     }
     if (_idSeccionActiva == "IDIOMAS") {
       return SeccionIdiomas(
-        idiomaActual: _idiomaSistema,
-        alCambiarIdioma: (nuevoIdioma) =>
-            setState(() => _idiomaSistema = nuevoIdioma),
-        onVolver: () => _ejecutarViajeHaciaSeccion("HOME"),
-      );
+          idiomaActual: _idiomaSistema,
+          alCambiarIdioma: (nuevoIdioma) =>
+              setState(() => _idiomaSistema = nuevoIdioma),
+          onVolver: () => _ejecutarViajeHaciaSeccion("HOME"));
     }
     if (_idSeccionActiva == "SOBRE MÍ") {
       return _construirSeccionSobreMiInterna();
     }
     return const SizedBox();
   }
-
-  // --- WIDGETS INTERNOS DE LA SECCIÓN "SOBRE MÍ" Y HUD ---
 
   Widget _construirSeccionSobreMiInterna() {
     String t(String key) => Traductor.obtener(key, _idiomaSistema);
@@ -419,14 +349,16 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
     );
   }
 
-  Widget _construirCajaTerminalInfo(String texto) {
+  Widget _construirCajaTerminalInfo(String texto, double escala) {
     return Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12 * escala),
         decoration: BoxDecoration(
             color: Colors.black.withOpacity(0.7),
-            border: Border.all(color: Colors.orange, width: 1.5)),
+            border: Border.all(color: Colors.orange, width: 1.5 * escala)),
         child: Text(texto,
-            style: const TextStyle(
-                color: Colors.orange, fontSize: 10, fontFamily: 'monospace')));
+            style: TextStyle(
+                color: Colors.orange,
+                fontSize: 10 * escala,
+                fontFamily: 'monospace')));
   }
 }
