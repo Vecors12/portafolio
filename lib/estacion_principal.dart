@@ -110,20 +110,31 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
 
   @override
   Widget build(BuildContext context) {
-    double w = MediaQuery.of(context).size.width;
     String t(String key) => Traductor.obtener(key, _idiomaSistema);
 
     return Scaffold(
       backgroundColor: const Color(0xFF020205),
-      body: Stack(
-        children: [
-          _construirImagenFondo(),
-          _construirEscenarioVias(w),
-          _construirTrenAnimado(t),
-          _construirPasajeroNPC(),
-          _construirPanelDeContenidoOscuro(w),
-          _construirHUDyMenu(t, w),
-        ],
+      body: Center(
+        // AQUÍ ESTÁ LA MAGIA QUE PEDÍAS: Envuelve tu código de PC y lo encoge
+        child: FittedBox(
+          fit: BoxFit.contain,
+          alignment: Alignment.center,
+          child: SizedBox(
+            // Le forzamos un tamaño estático de monitor de PC (1280x720)
+            width: 1280,
+            height: 720,
+            child: Stack(
+              children: [
+                _construirImagenFondo(),
+                _construirEscenarioVias(1280),
+                _construirTrenAnimado(t),
+                _construirPasajeroNPC(),
+                _construirPanelDeContenidoOscuro(),
+                _construirHUDyMenu(t),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -184,14 +195,11 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
     );
   }
 
-  Widget _construirPanelDeContenidoOscuro(double w) {
-    // Calculamos la escala para dejar hueco a la derecha y no pisar el menú
-    double escala = w < 800 ? w / 800 : 1.0;
-
+  Widget _construirPanelDeContenidoOscuro() {
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 500),
       curve: Curves.easeInOut,
-      top: _mostrarInterfazSeccion ? 0 : MediaQuery.of(context).size.height,
+      top: _mostrarInterfazSeccion ? 0 : 720,
       bottom: 0,
       left: 0,
       right: 0,
@@ -199,11 +207,9 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
         color: Colors.black.withOpacity(0.85),
         child: Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 800 * escala),
+            constraints: const BoxConstraints(maxWidth: 800),
             child: Padding(
-                // Forzamos un padding derecho grande en móviles para que el menú quepa
-                padding:
-                    EdgeInsets.only(left: 24.0, right: 24.0 + (60 * escala)),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: _inyectarWidgetDeSeccion()),
           ),
         ),
@@ -211,34 +217,29 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
     );
   }
 
-  Widget _construirHUDyMenu(String Function(String) t, double w) {
-    // Escala matemática directa
-    double escala = w < 800 ? w / 800 : 1.0;
-
+  Widget _construirHUDyMenu(String Function(String) t) {
     return Stack(
       children: [
         Positioned(
-            top: 40 * escala,
-            left: 40 * escala,
+            top: 40,
+            left: 40,
             child: _construirCajaTerminalInfo(
-                "DESTINO: PORTFOLIO\nESTADO: CONECTADO\nVÍA: 01", escala)),
+                "DESTINO: PORTFOLIO\nESTADO: CONECTADO\nVÍA: 01")),
         Positioned(
-            top: 20 * escala,
+            top: 40,
+            right: 40,
+            child: MenuMetro(
+                seccionActual: _idSeccionActiva,
+                idioma: _idiomaSistema,
+                alSeleccionar: (id) => _ejecutarViajeHaciaSeccion(id))),
+        const Positioned(
+            top: 20,
             left: 0,
             right: 0,
             child: Center(
                 child: Text("LOREN // PORTFOLIO 2026",
                     style: TextStyle(
-                        color: Colors.cyan,
-                        letterSpacing: 8 * escala,
-                        fontSize: 10 * escala)))),
-        Positioned(
-            top: 40 * escala,
-            right: 20 * (escala < 1.0 ? 0.5 : 1.0),
-            child: MenuMetro(
-                seccionActual: _idSeccionActiva,
-                idioma: _idiomaSistema,
-                alSeleccionar: (id) => _ejecutarViajeHaciaSeccion(id))),
+                        color: Colors.cyan, letterSpacing: 8, fontSize: 10)))),
       ],
     );
   }
@@ -278,10 +279,11 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
     }
     if (_idSeccionActiva == "IDIOMAS") {
       return SeccionIdiomas(
-          idiomaActual: _idiomaSistema,
-          alCambiarIdioma: (nuevoIdioma) =>
-              setState(() => _idiomaSistema = nuevoIdioma),
-          onVolver: () => _ejecutarViajeHaciaSeccion("HOME"));
+        idiomaActual: _idiomaSistema,
+        alCambiarIdioma: (nuevoIdioma) =>
+            setState(() => _idiomaSistema = nuevoIdioma),
+        onVolver: () => _ejecutarViajeHaciaSeccion("HOME"),
+      );
     }
     if (_idSeccionActiva == "SOBRE MÍ") {
       return _construirSeccionSobreMiInterna();
@@ -294,7 +296,14 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
     return ListView(
       children: [
         const SizedBox(height: 120),
-        _construirBotonVolver(t('btn_volver')),
+        Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+                onPressed: () => _ejecutarViajeHaciaSeccion("HOME"),
+                icon: const Icon(Icons.arrow_back_ios,
+                    size: 12, color: Colors.cyan),
+                label: Text(t('btn_volver'),
+                    style: const TextStyle(color: Colors.cyan)))),
         const SizedBox(height: 30),
         Text(t('s_titulo'),
             style: const TextStyle(
@@ -318,16 +327,6 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
     );
   }
 
-  Widget _construirBotonVolver(String texto) {
-    return Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-            onPressed: () => _ejecutarViajeHaciaSeccion("HOME"),
-            icon:
-                const Icon(Icons.arrow_back_ios, size: 12, color: Colors.cyan),
-            label: Text(texto, style: const TextStyle(color: Colors.cyan))));
-  }
-
   Widget _construirTarjetaInfoSobreMi(
       String titulo, String texto, Color colorAcento) {
     return Container(
@@ -349,16 +348,14 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
     );
   }
 
-  Widget _construirCajaTerminalInfo(String texto, double escala) {
+  Widget _construirCajaTerminalInfo(String texto) {
     return Container(
-        padding: EdgeInsets.all(12 * escala),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
             color: Colors.black.withOpacity(0.7),
-            border: Border.all(color: Colors.orange, width: 1.5 * escala)),
+            border: Border.all(color: Colors.orange, width: 1.5)),
         child: Text(texto,
-            style: TextStyle(
-                color: Colors.orange,
-                fontSize: 10 * escala,
-                fontFamily: 'monospace')));
+            style: const TextStyle(
+                color: Colors.orange, fontSize: 10, fontFamily: 'monospace')));
   }
 }
