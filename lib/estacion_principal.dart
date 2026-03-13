@@ -206,12 +206,13 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
         // Suelo realista con efecto de rejilla / glitch
         const Positioned(
             bottom: 0, left: 0, right: 0, child: SueloEstacionRealista()),
-        // Logo estático posicionado en la escena
-        Positioned(
-            left: screenWidth * 0.71,
-            bottom: 380,
-            child: Image.asset('assets/logo.png',
-                width: 125, fit: BoxFit.contain)),
+        // Logo estático posicionado en la escena (desaparece en móvil si molesta)
+        if (screenWidth > 600)
+          Positioned(
+              left: screenWidth * 0.71,
+              bottom: 380,
+              child: Image.asset('assets/logo.png',
+                  width: 125, fit: BoxFit.contain)),
       ],
     );
   }
@@ -266,31 +267,39 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
   }
 
   Widget _construirHUDyMenu(String Function(String) t) {
+    double anchoPantalla = MediaQuery.of(context).size.width;
+    bool esMovil = anchoPantalla < 700; // Detectamos móvil
+
     return Stack(
       children: [
-        // Información arriba a la izquierda
+        // Información arriba a la izquierda (SE OCULTA EN MÓVIL)
+        if (!esMovil)
+          Positioned(
+              top: 40,
+              left: 40,
+              child: _construirCajaTerminalInfo(
+                  "DESTINO: PORTFOLIO\nESTADO: CONECTADO\nVÍA: 01")),
+                  
+        // Menú de navegación a la derecha (Márgenes adaptables)
         Positioned(
-            top: 40,
-            left: 40,
-            child: _construirCajaTerminalInfo(
-                "DESTINO: PORTFOLIO\nESTADO: CONECTADO\nVÍA: 01")),
-        // Menú de navegación a la derecha
-        Positioned(
-            top: 40,
-            right: 40,
+            top: esMovil ? 50 : 40,
+            right: esMovil ? 15 : 40,
             child: MenuMetro(
                 seccionActual: _idSeccionActiva,
                 idioma: _idiomaSistema,
                 alSeleccionar: (id) => _ejecutarViajeHaciaSeccion(id))),
-        // Texto superior central
-        const Positioned(
+                
+        // Texto superior central (Más pequeño en móvil)
+        Positioned(
             top: 20,
             left: 0,
             right: 0,
             child: Center(
                 child: Text("LOREN // PORTFOLIO 2026",
                     style: TextStyle(
-                        color: Colors.cyan, letterSpacing: 8, fontSize: 10)))),
+                        color: Colors.cyan, 
+                        letterSpacing: esMovil ? 4 : 8, 
+                        fontSize: esMovil ? 8 : 10)))),
       ],
     );
   }
@@ -343,11 +352,8 @@ class _EstacionPrincipalState extends State<EstacionPrincipal>
       );
     }
     if (_idSeccionActiva == "SOBRE MÍ") {
-      // Mantenemos la estructura interna de "Sobre Mí" para asegurar armonía
-      // visual sin tocar otros archivos prematuramente.
       return _construirSeccionSobreMiInterna();
     }
-    // Retorno por defecto (Pantalla vacía transparente)
     return const SizedBox();
   }
 

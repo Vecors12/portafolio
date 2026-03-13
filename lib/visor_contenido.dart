@@ -24,9 +24,14 @@ class VisorTren extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 1. DETECCIÓN DE PANTALLA: Calculamos el ancho disponible
+    double anchoPantalla = MediaQuery.of(context).size.width;
+    bool esMovil = anchoPantalla < 600;
+
     return Container(
-      width: 440,
-      height: 210,
+      // 2. TAMAÑO DINÁMICO: 440px en PC, 85% del ancho en móvil
+      width: esMovil ? anchoPantalla * 0.85 : 440,
+      height: esMovil ? 160 : 210, // Más bajito en móvil
       // Decoración del panel: Fondo azul muy oscuro con borde de neón cyan
       decoration: BoxDecoration(
         color: const Color(0xFF051122).withOpacity(0.95),
@@ -40,22 +45,22 @@ class VisorTren extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center, 
           children: [
-            // 1. Texto principal holográfico
-            _construirTextoPrincipal(titulo),
+            // 1. Texto principal holográfico adaptable
+            _construirTextoPrincipal(titulo, esMovil),
             
             const SizedBox(height: 15),
             
             // 2. Línea divisoria decorativa
             Container(
-              width: 120, 
+              width: esMovil ? 80 : 120, 
               height: 1.5, 
               color: Colors.cyan.withOpacity(0.4)
             ),
             
             const SizedBox(height: 15),
             
-            // 3. Subtítulo de estado del sistema
-            _construirSubtituloEstado("NEXT STOP: $titulo // SYSTEM_STABLE"),
+            // 3. Subtítulo de estado del sistema adaptable
+            _construirSubtituloEstado("NEXT STOP: $titulo // SYSTEM_STABLE", esMovil),
           ]
         ),
       ),
@@ -67,28 +72,30 @@ class VisorTren extends StatelessWidget {
   // ==========================================
 
   /// Dibuja el texto gigante con sombras para crear un efecto brillante.
-  Widget _construirTextoPrincipal(String texto) {
+  Widget _construirTextoPrincipal(String texto, bool esMovil) {
     return Text(
       texto,
-      style: const TextStyle(
-        color: Color(0xFF00FFFF), // Cyan puro
-        fontSize: 42,
+      textAlign: TextAlign.center, // Vital para móviles
+      style: TextStyle(
+        color: const Color(0xFF00FFFF), // Cyan puro
+        fontSize: esMovil ? 28 : 42, // Se encoge en móvil
         fontWeight: FontWeight.w900,
-        letterSpacing: 10,
+        letterSpacing: esMovil ? 6 : 10,
         // Sombra doble para el efecto neón intenso
-        shadows: [Shadow(color: Colors.cyan, blurRadius: 15)],
+        shadows: const [Shadow(color: Colors.cyan, blurRadius: 15)],
       ),
     );
   }
 
   /// Dibuja el texto pequeño estilo terminal debajo de la línea.
-  Widget _construirSubtituloEstado(String texto) {
+  Widget _construirSubtituloEstado(String texto, bool esMovil) {
     return Text(
       texto,
+      textAlign: TextAlign.center, // Vital para móviles
       style: TextStyle(
         color: Colors.cyan.withOpacity(0.5),
-        fontSize: 9,
-        letterSpacing: 3,
+        fontSize: esMovil ? 7 : 9,
+        letterSpacing: esMovil ? 1.5 : 3,
         fontWeight: FontWeight.w300,
       ),
     );
