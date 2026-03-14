@@ -42,8 +42,7 @@ class SeccionIdiomas extends StatelessWidget {
       // Scroll suave y rebotante para una experiencia perfecta en pantallas táctiles
       physics: const BouncingScrollPhysics(),
       children: [
-        const SizedBox(
-            height: 120), // Espacio para el HUD superior de la estación
+        const SizedBox(height: 20), // Espacio tras el HUD
 
         // 1. Botón superior de retroceso
         _construirBotonVolver(t('btn_volver')),
@@ -104,14 +103,21 @@ class SeccionIdiomas extends StatelessWidget {
 
   /// Dibuja el título de la sección simulando la interfaz de una terminal.
   Widget _construirTituloSeccion(String texto) {
-    return Text(
-      texto,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 24, // Tamaño seguro para no desbordar en web ni en móviles
-        fontWeight: FontWeight.bold,
-        fontFamily: 'monospace',
-      ),
+    // RESPONSIVE: En móvil reducimos a 18px para que el título largo no se parta
+    // El comentario original decía "Tamaño seguro" pero 24 se parte en monospace en móvil
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool esMovil = MediaQuery.of(context).size.width < 600;
+        return Text(
+          texto,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: esMovil ? 16 : 24,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'monospace',
+          ),
+        );
+      },
     );
   }
 

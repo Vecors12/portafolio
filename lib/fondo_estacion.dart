@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math';
 
+// =========================================================================
+// WIDGET 1: PERSONAJE NPC
+// =========================================================================
 class PersonajeNPC extends StatefulWidget {
   final bool vaAlTren;
   const PersonajeNPC({super.key, required this.vaAlTren});
+
   @override
   State<PersonajeNPC> createState() => _PersonajeNPCState();
 }
@@ -16,8 +20,10 @@ class _PersonajeNPCState extends State<PersonajeNPC>
   bool _estaCaminando = false;
   int _duracionViajeMs = 0;
   double _anguloInclinacion = 0.0;
+
   String _imagenAnterior = 'assets/avatar_frente.png';
   String _imagenActual = 'assets/avatar_frente.png';
+
   late Timer _temporizadorIA;
   final Random _generadorAzar = Random();
   late AnimationController _controladorPasos;
@@ -30,11 +36,14 @@ class _PersonajeNPCState extends State<PersonajeNPC>
         ? 'assets/avatar_espalda.png'
         : 'assets/avatar_frente.png';
     _imagenAnterior = _imagenActual;
+
     _controladorPasos = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 350));
+
     _controladorTransicionImagen = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 250))
       ..value = 1.0;
+
     _temporizadorIA = Timer.periodic(const Duration(milliseconds: 3500), (t) {
       if (mounted && !widget.vaAlTren && !_estaCaminando)
         _tomarDecisionCaminar();
@@ -104,13 +113,16 @@ class _PersonajeNPCState extends State<PersonajeNPC>
         ? 'assets/avatar_perfilizquierdo.png'
         : 'assets/avatar_perfilderecho.png');
     _controladorPasos.repeat(reverse: true);
+
     int msCalculados = ((_objetivoX - _posicionXRelativa).abs() * 8000)
         .toInt()
         .clamp(2500, 8000);
+
     setState(() {
       _posicionXRelativa = _objetivoX;
       _duracionViajeMs = msCalculados;
     });
+
     Future.delayed(Duration(milliseconds: msCalculados), () {
       if (mounted && !widget.vaAlTren && _estaCaminando) {
         setState(() {
@@ -128,8 +140,11 @@ class _PersonajeNPCState extends State<PersonajeNPC>
 
   @override
   Widget build(BuildContext context) {
-    double anchoPantalla = MediaQuery.of(context).size.width;
-    double anchoAvatar = anchoPantalla * 0.35;
+    final double anchoPantalla = MediaQuery.of(context).size.width;
+    final bool esMovil = anchoPantalla < 600;
+    // Móvil: 60% del ancho para que sea bien visible. PC: 35% original.
+    final double anchoAvatar = anchoPantalla * (esMovil ? 0.60 : 0.35);
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -185,113 +200,101 @@ class _PersonajeNPCState extends State<PersonajeNPC>
       );
 }
 
+// =========================================================================
+// WIDGET 2: MURO DE VÍAS Y GRAFITIS
+// =========================================================================
 class ForegroundMuroVias extends StatelessWidget {
   const ForegroundMuroVias({super.key});
+
   @override
   Widget build(BuildContext context) =>
-      CustomPaint(painter: _MuroViasPainter(MediaQuery.of(context).size.width));
+      const CustomPaint(painter: _MuroViasPainter(), size: Size.infinite);
 }
 
 class _MuroViasPainter extends CustomPainter {
-  final double widthPantalla;
-  const _MuroViasPainter(this.widthPantalla);
+  const _MuroViasPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final anchoLienzo = size.width;
+    final double w = size.width;
+    final double h = size.height;
 
-    // Calculamos el factor de escala en la pintura directamente
-    double escala = widthPantalla < 800 ? widthPantalla / 800 : 1.0;
+    // Base de diseño: h=320px (PC). Todo escala desde aquí.
+    final double factorY = h / 320.0;
+    final double factorEscala = factorY.clamp(0.45, 1.2);
+    final bool esMovil = w < 600;
 
-    canvas.drawRect(Rect.fromLTWH(0, 0, anchoLienzo, 240),
+    // 1. Muro oscuro — 75% superior del widget
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h * 0.75),
         Paint()..color = const Color(0xFF0D0D15));
 
+    // 2. Líneas horizontales tenues
     final pincelLineas = Paint()
       ..color = Colors.orange.withOpacity(0.12)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
     for (int i = 0; i < 6; i++) {
-      canvas.drawLine(Offset(0, (i * 45).toDouble()),
-          Offset(anchoLienzo, (i * 45).toDouble()), pincelLineas);
+      final double y = (h * 0.75 / 5) * i;
+      canvas.drawLine(Offset(0, y), Offset(w, y), pincelLineas);
     }
 
-    _dibujarTextoGraffiti(canvas, "FLUTTER", Offset(anchoLienzo * 0.05, 30),
-        Colors.cyanAccent, 32 * escala, -0.05);
-    _dibujarTextoGraffiti(canvas, "SQL", Offset(anchoLienzo * 0.08, 190),
-        Colors.cyan, 24 * escala, 0.04);
-    _dibujarTextoGraffiti(canvas, "LUCHADOR", Offset(anchoLienzo * 0.02, 110),
-        Colors.red, 20 * escala, 0.1);
-    _dibujarTextoGraffiti(
-        canvas,
-        "IT SECURITY",
-        Offset(anchoLienzo * 0.18, 140),
-        Colors.lightGreenAccent,
-        24 * escala,
-        0.02);
-    _dibujarTextoGraffiti(canvas, "RAP", Offset(anchoLienzo * 0.28, 195),
-        Colors.redAccent, 28 * escala, -0.1);
-    _dibujarTextoGraffiti(canvas, "CREATIVO", Offset(anchoLienzo * 0.35, 40),
-        Colors.yellowAccent, 22 * escala, -0.08);
-    _dibujarTextoGraffiti(canvas, "VIAJES", Offset(anchoLienzo * 0.55, 20),
-        Colors.orange, 20 * escala, 0.02);
-    _dibujarTextoGraffiti(canvas, "JAVA", Offset(anchoLienzo * 0.72, 30),
-        Colors.orangeAccent, 26 * escala, -0.02);
-    _dibujarTextoGraffiti(canvas, "PYTHON", Offset(anchoLienzo * 0.90, 40),
-        const Color(0xFF3776AB), 28 * escala, 0.05);
-    _dibujarTextoGraffiti(canvas, "ARTISTA", Offset(anchoLienzo * 0.60, 185),
-        Colors.pinkAccent, 22 * escala, 0.05);
-    _dibujarTextoGraffiti(canvas, "DEUTSCH", Offset(anchoLienzo * 0.85, 200),
-        Colors.white70, 18 * escala, -0.05);
-    _dibujarTextoGraffiti(canvas, "ENGLISH", Offset(anchoLienzo * 0.93, 165),
-        Colors.white70, 18 * escala, 0.08);
-    _dibujarTextoGraffiti(canvas, "SOÑADOR", Offset(anchoLienzo * 0.42, 210),
-        Colors.blueAccent, 20 * escala, -0.04);
-    _dibujarTextoGraffiti(canvas, "UNDERGROUND",
-        Offset(anchoLienzo * 0.45, 140), Colors.purpleAccent, 16 * escala, 0.0);
+    // 3. Grafitis — posiciones X adaptadas en móvil para no amontonarse
+    _g(canvas, "FLUTTER",     Offset(w * 0.05, 30  * factorY), Colors.cyanAccent,       32 * factorEscala, -0.05);
+    _g(canvas, "SQL",         Offset(w * 0.08, 190 * factorY), Colors.cyan,              24 * factorEscala,  0.04);
+    _g(canvas, "LUCHADOR",    Offset(w * 0.02, 110 * factorY), Colors.red,               20 * factorEscala,  0.10);
+    _g(canvas, "IT SECURITY", Offset(w * 0.18, 140 * factorY), Colors.lightGreenAccent,  22 * factorEscala,  0.02);
+    _g(canvas, "RAP",         Offset(w * 0.28, 195 * factorY), Colors.redAccent,         28 * factorEscala, -0.10);
+    _g(canvas, "CREATIVO",    Offset(w * 0.35,  40 * factorY), Colors.yellowAccent,      22 * factorEscala, -0.08);
+    _g(canvas, "VIAJES",      Offset(w * 0.55,  20 * factorY), Colors.orange,            20 * factorEscala,  0.02);
+    _g(canvas, "JAVA",        Offset(w * 0.68,  30 * factorY), Colors.orangeAccent,      26 * factorEscala, -0.02);
+    _g(canvas, "SOÑADOR",     Offset(w * 0.42, 210 * factorY), Colors.blueAccent,        20 * factorEscala, -0.04);
+    _g(canvas, "UNDERGROUND", Offset(w * 0.45, 140 * factorY), Colors.purpleAccent,      16 * factorEscala,  0.00);
+    _g(canvas, "ARTISTA",     Offset(w * 0.60, 185 * factorY), Colors.pinkAccent,        22 * factorEscala,  0.05);
+    // En móvil estas tres se reparten bien para no chocar
+    _g(canvas, "PYTHON",  Offset(w * (esMovil ? 0.60 : 0.88),  60 * factorY), const Color(0xFF3776AB), 26 * factorEscala,  0.05);
+    _g(canvas, "DEUTSCH", Offset(w * (esMovil ? 0.42 : 0.83), 205 * factorY), Colors.white70,          18 * factorEscala, -0.05);
+    _g(canvas, "ENGLISH", Offset(w * (esMovil ? 0.75 : 0.91), 165 * factorY), Colors.white70,          18 * factorEscala,  0.08);
 
-    canvas.drawRect(Rect.fromLTWH(0, 240, anchoLienzo, 20),
+    // 4. Plataforma y andén
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.750, w, h * 0.063),
         Paint()..color = const Color(0xFF0A0C10));
-    canvas.drawRect(
-        Rect.fromLTWH(0, 260, anchoLienzo, 60), Paint()..color = Colors.black);
+    canvas.drawRect(Rect.fromLTWH(0, h * 0.813, w, h * 0.187),
+        Paint()..color = Colors.black);
 
-    for (double x = 0; x < anchoLienzo; x += 45) {
-      canvas.drawRect(Rect.fromLTWH(x, 270, 25, 40),
+    // 5. Marcas de textura
+    for (double x = 0; x < w; x += 45) {
+      canvas.drawRect(Rect.fromLTWH(x, h * 0.844, 25, h * 0.125),
           Paint()..color = const Color(0xFF1E2228));
     }
 
-    final pincelRaies = Paint()
+    // 6. Raíles
+    final pincelRailes = Paint()
       ..color = Colors.cyan.withOpacity(0.3)
       ..strokeWidth = 3;
-    canvas.drawLine(
-        const Offset(0, 275), Offset(anchoLienzo, 275), pincelRaies);
-    canvas.drawLine(
-        const Offset(0, 305), Offset(anchoLienzo, 305), pincelRaies);
+    canvas.drawLine(Offset(0, h * 0.859), Offset(w, h * 0.859), pincelRailes);
+    canvas.drawLine(Offset(0, h * 0.953), Offset(w, h * 0.953), pincelRailes);
   }
 
-  void _dibujarTextoGraffiti(Canvas lienzo, String texto, Offset posicion,
-      Color colorNeom, double tamanoTexto, double anguloRotacion) {
-    final dibujanteTexto = TextPainter(
+  void _g(Canvas lienzo, String texto, Offset pos, Color color,
+      double size, double angulo) {
+    final tp = TextPainter(
         text: TextSpan(
             text: texto,
             style: TextStyle(
-                color: colorNeom.withOpacity(0.6),
-                fontSize: tamanoTexto,
+                color: color.withOpacity(0.6),
+                fontSize: size,
                 fontWeight: FontWeight.w900,
                 fontFamily: 'monospace',
-                shadows: [
-                  Shadow(color: colorNeom.withOpacity(0.8), blurRadius: 10)
-                ])),
+                shadows: [Shadow(color: color.withOpacity(0.8), blurRadius: 10)])),
         textDirection: TextDirection.ltr)
       ..layout();
-
     lienzo.save();
-    lienzo.translate(posicion.dx, posicion.dy);
-    lienzo.rotate(anguloRotacion);
-    dibujanteTexto.paint(lienzo, Offset.zero);
+    lienzo.translate(pos.dx, pos.dy);
+    lienzo.rotate(angulo);
+    tp.paint(lienzo, Offset.zero);
     lienzo.restore();
   }
 
   @override
-  bool shouldRepaint(_MuroViasPainter old) =>
-      old.widthPantalla != widthPantalla;
+  bool shouldRepaint(_MuroViasPainter old) => false;
 }
